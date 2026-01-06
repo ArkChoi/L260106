@@ -116,6 +116,11 @@
     <PreBuildEvent>
       <Message>flatbuffer 생성</Message>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy $(OutputPath)Common.lib $(SolutionDir)Server\.
+copy $(OutputPath)Common.lib $(SolutionDir)Client\.
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -136,6 +141,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="UserEvents.fbs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

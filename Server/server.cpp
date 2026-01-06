@@ -6,15 +6,12 @@
 #include <iostream>
 
 #include "Common.h"
-//#include "ChatPacket.h"
 
-#pragma comment(lib, "ws2_32")
+#pragma comment(lib, "Common.lib")
 
+void ProcessPacket(SOCKET ClientSoket, const char* Buffer);
 
-
-using namespace std;
-
-string PrintAddress(SOCKET InSocket)
+std::string PrintAddress(SOCKET InSocket)
 {
 	SOCKADDR_IN GetSocketAddr;
 	memset(&GetSocketAddr, 0, sizeof(GetSocketAddr));
@@ -38,7 +35,7 @@ int main()
 	SOCKADDR_IN ListenSockAddr;
 	memset(&ListenSockAddr, 0, sizeof(ListenSockAddr));
 	ListenSockAddr.sin_family = AF_INET;
-	ListenSockAddr.sin_addr.s_addr = inet_addr("192.168.0.100");
+	ListenSockAddr.sin_addr.s_addr = inet_addr("192.168.0.3");
 	ListenSockAddr.sin_port = htons(30000);
 
 	bind(ListenSocket, (SOCKADDR*)&ListenSockAddr, sizeof(ListenSockAddr));
@@ -49,7 +46,7 @@ int main()
 	FD_ZERO(&ReadSocketList);
 	FD_SET(ListenSocket, &ReadSocketList);
 
-	cout << "Start Server" << endl;
+	std::cout << "Start Server" << std::endl;
 
 	//[1][1][1]  [1][1]   ->   [1][1]
 	TIMEVAL Timeout;
@@ -82,14 +79,21 @@ int main()
 					SOCKET ClientSocket = accept(ListenSocket, (SOCKADDR*)&ClientSockAddr, &ClientSockAddrLength);
 					//나중에 세션 만든다고..
 					FD_SET(ClientSocket, &ReadSocketList);
-					cout << "Client connect : " << PrintAddress(ClientSocket) << endl;
+					std::cout << "Client connect : " << PrintAddress(ClientSocket) << std::endl;
 				}
 				else
 				{
 					char Buffer[4096] = { 0, };
 					int RecvBytes = RecvPacket(SelectSocket, Buffer);
 
+					if (RecvBytes <= 0)
+					{
+						FD_CLR(SelectSocket, &ReadSocketList);
+						continue;
+					}
+
 					//flatbuffer deserialize 하자 | 목표
+					ProcessPacket(SelectSocket, Buffer);
 				}
 			}
 		}
@@ -106,4 +110,30 @@ int main()
 
 	return 0;
 
+}
+
+void ProcessPacket(SOCKET ClientSoket, const char* Buffer)
+{
+	flatbuffers::FlatBufferBuilder SendBuilder;
+
+	auto RecvEventData = UserEvents::GetEventData(Buffer);
+	switch (RecvEventData->data_type())
+	{
+	case UserEvents::EventType_C2S_Login:
+		auto C2S_LoginData = RecvEventData->data_as_C2S_Login();
+		
+		std::cout << "userid : " << C2S_LoginData->userid()->c_str() << std::endl;
+		std::cout << "password : " << C2S_LoginData->password()->c_str() << std::endl;
+
+		//DB 통신 부분 추가해주면 됨
+		UserEvents::Color MyColor(128, 128, 128);
+		auto S2C_LoginData = UserEvents::CreateS2C_Login(SendBuilder, 100, true, SendBuilder.CreateString("success"), 123, 345, &MyColor);
+
+		auto EventData = UserEvents::CreateEventData(SendBuilder, 0, UserEvents::EventType_S2C_Login, S2C_LoginData.Union());
+
+		SendBuilder.Finish(EventData);
+		SendPacket(ClientSoket, SendBuilder);
+
+		break;
+	}
 }

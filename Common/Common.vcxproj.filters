@@ -14,4 +14,9 @@
   <ItemGroup>
     <None Include="UserEvents.fbs" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
 </Project>
