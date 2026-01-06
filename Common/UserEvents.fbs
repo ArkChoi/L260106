@@ -1,0 +1,34 @@
+namespace UserEvents;
+
+struct Color {
+	r: uint8;
+	g: uint8;
+	b: uint8;
+}
+
+table C2S_Login {
+	userid: string; 
+	password: string;
+}
+
+table S2C_Login {
+	player_id: uint32;
+	success: bool;
+	message: string;
+	position_x: int32;
+	position_y: int32;
+	color: Color;
+}
+
+union EventType {
+	C2S_Login,
+	S2C_Login
+}
+
+
+table EventData {
+	timestamp: uint64;
+	data: EventType;
+}
+
+root_type EventData;
